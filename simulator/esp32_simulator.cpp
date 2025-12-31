@@ -11,14 +11,9 @@
 #include <arpa/inet.h>
 
 #include "web_ui.h"
+#include "config.h"
 
-// ESP32のconfig.hをシミュレート
-const int NUM_PHOTOCOUPLERS = 4;
-const char* PC_NAMES[] = {"PC-01", "PC-02", "PC-03", "PC-04"};
-const int PHOTOCOUPLER_PINS[] = {25, 26, 27, 14};
-const int POWER_PULSE_MS = 500;
-const int POWER_LONG_PRESS_MS = 5000;
-const int WEB_SERVER_PORT = 80;
+// 実機用config.hをそのまま利用
 
 // HTTPレスポンスヘッダーを生成
 std::string createHttpResponse(int statusCode, const std::string& contentType, const std::string& body) {

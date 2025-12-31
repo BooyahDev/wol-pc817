@@ -20,10 +20,11 @@ WORKDIR /app
 # ソースファイルをコピー
 COPY simulator/ /app/
 COPY shared/ /app/shared/
+COPY src/config.h /app/src/config.h
 
 # ビルド
 RUN g++ -std=c++17 -o esp32_simulator \
-    -I./shared \
+    -I./shared -I./src \
     esp32_simulator.cpp \
     -lpthread
 
