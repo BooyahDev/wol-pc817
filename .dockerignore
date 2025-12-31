@@ -1,0 +1,9 @@
+.git
+.gitignore
+.pio
+.vscode
+README.md
+platformio.ini
+src/
+!simulator/
+!shared/

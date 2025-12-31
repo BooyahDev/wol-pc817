@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  esp32-simulator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: esp32-simulator
+    platform: linux/arm64
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
