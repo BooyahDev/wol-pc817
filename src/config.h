@@ -1,6 +1,6 @@
 // Wi-Fi設定
-#define WIFI_SSID "your_wifi_ssid"
-#define WIFI_PASSWORD "your_wifi_password"
+#define WIFI_SSID "elecom2g-ae5419"
+#define WIFI_PASSWORD "junh3fhhix8k"
 
 // Webサーバのポート
 #define WEB_SERVER_PORT 80

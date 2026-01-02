@@ -76,13 +76,13 @@ inline std::string buildWebUI(const std::vector<std::string>& pcNames,
             try {
                 const response = await fetch(`/api/power/${pcIndex}`, { method: 'POST' });
                 const data = await response.json();
-                if (response.ok) {
-                    showMessage(data.message, true);
+                if (response.ok && data.success) {
+                    showMessage(data.message || '電源操作を実行しました', true);
                 } else {
-                    showMessage('エラー: ' + data.message, false);
+                    showMessage('エラー: ' + (data.message || response.statusText || '不明なエラー'), false);
                 }
             } catch (error) {
-                showMessage('通信エラー: ' + error, false);
+                showMessage('通信エラー: ' + (error.message || error.toString()), false);
             }
         }
 
@@ -92,13 +92,13 @@ inline std::string buildWebUI(const std::vector<std::string>& pcNames,
                 showMessage(`${pcNames[pcIndex]} の電源ボタンを長押ししています...`, true);
                 const response = await fetch(`/api/longpress/${pcIndex}`, { method: 'POST' });
                 const data = await response.json();
-                if (response.ok) {
-                    showMessage(data.message, true);
+                if (response.ok && data.success) {
+                    showMessage(data.message || '強制シャットダウンを実行しました', true);
                 } else {
-                    showMessage('エラー: ' + data.message, false);
+                    showMessage('エラー: ' + (data.message || response.statusText || '不明なエラー'), false);
                 }
             } catch (error) {
-                showMessage('通信エラー: ' + error, false);
+                showMessage('通信エラー: ' + (error.message || error.toString()), false);
             }
         }
 

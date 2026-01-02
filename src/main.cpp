@@ -1,5 +1,8 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#ifndef ASYNCWEBSERVER_REGEX
+#define ASYNCWEBSERVER_REGEX
+#endif
 #include <ESPAsyncWebServer.h>
 #include <vector>
 #include "config.h"
@@ -40,24 +43,35 @@ void pressPowerButton(int pcIndex) {
     Serial.printf("%s power button pressed\n", PC_NAMES[pcIndex]);
 }
 
-// PC電源ボタンを長押し（強制シャットダウン用）
-void longPressPowerButton(int pcIndex) {
+// PC電源ボタンを長押し（強制シャットダウン用）を非同期で実行してWDTを回避
+void longPressPowerButtonAsync(int pcIndex) {
     if (pcIndex < 0 || pcIndex >= NUM_PHOTOCOUPLERS) {
         Serial.println("Invalid PC index");
         return;
     }
-    
-    Serial.printf("Long pressing power button for %s (GPIO %d) - %dms\n", 
-                  PC_NAMES[pcIndex], PHOTOCOUPLER_PINS[pcIndex], POWER_LONG_PRESS_MS);
-    
-    digitalWrite(PHOTOCOUPLER_PINS[pcIndex], HIGH);
-    delay(POWER_LONG_PRESS_MS);
-    digitalWrite(PHOTOCOUPLER_PINS[pcIndex], LOW);
-    
-    // 強制シャットダウンなので状態はOFF
-    pcStates[pcIndex] = false;
-    
-    Serial.printf("%s power button long pressed (forced shutdown)\n", PC_NAMES[pcIndex]);
+
+    xTaskCreatePinnedToCore(
+        [](void *param) {
+            int idx = (int)(intptr_t)param;
+            Serial.printf("Long pressing power button for %s (GPIO %d) - %dms\n",
+                          PC_NAMES[idx], PHOTOCOUPLER_PINS[idx], POWER_LONG_PRESS_MS);
+
+            digitalWrite(PHOTOCOUPLER_PINS[idx], HIGH);
+            vTaskDelay(pdMS_TO_TICKS(POWER_LONG_PRESS_MS));
+            digitalWrite(PHOTOCOUPLER_PINS[idx], LOW);
+
+            // 強制シャットダウンなので状態はOFF
+            pcStates[idx] = false;
+            Serial.printf("%s power button long pressed (forced shutdown)\n", PC_NAMES[idx]);
+            vTaskDelete(nullptr);
+        },
+        "longPressTask",
+        2048,                  // stack size
+        (void *)(intptr_t)pcIndex,
+        1,                     // priority
+        nullptr,
+        1                      // run on core 1 (same as WiFi/AsyncWebServer)
+    );
 }
 
 // Wi-Fi接続
@@ -124,7 +138,7 @@ void setupWebServer() {
     });
     
     // API: 電源操作
-    server.on("^\\/api\\/power\\/([0-9]+)$", HTTP_POST, [](AsyncWebServerRequest *request) {
+    server.on(R"(^/api/power/([0-9]+)$)", HTTP_POST, [](AsyncWebServerRequest *request) {
         String pcIndexStr = request->pathArg(0);
         int pcIndex = pcIndexStr.toInt();
         
@@ -146,16 +160,16 @@ void setupWebServer() {
     });
     
     // API: 電源長押し操作（強制シャットダウン）
-    server.on("^\\/api\\/longpress\\/([0-9]+)$", HTTP_POST, [](AsyncWebServerRequest *request) {
+    server.on(R"(^/api/longpress/([0-9]+)$)", HTTP_POST, [](AsyncWebServerRequest *request) {
         String pcIndexStr = request->pathArg(0);
         int pcIndex = pcIndexStr.toInt();
         
         if (pcIndex >= 0 && pcIndex < NUM_PHOTOCOUPLERS) {
-            longPressPowerButton(pcIndex);
+            longPressPowerButtonAsync(pcIndex);
             
             String json = "{";
             json += "\"success\":true,";
-            json += "\"message\":\"" + String(PC_NAMES[pcIndex]) + " power button long pressed (forced shutdown)\",";
+            json += "\"message\":\"" + String(PC_NAMES[pcIndex]) + " power button long press queued (forced shutdown)\",";
             json += "\"pcIndex\":" + String(pcIndex) + ",";
             json += "\"duration\":" + String(POWER_LONG_PRESS_MS);
             json += "}";
