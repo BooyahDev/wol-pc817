@@ -1,6 +1,6 @@
 // Wi-Fi設定
-#define WIFI_SSID "Buffalo-1F-Kame"
-#define WIFI_PASSWORD "0957543350"
+#define WIFI_SSID "HERE IS YOUR SSID"
+#define WIFI_PASSWORD "HERE IS YOUR PASSWORD"
 
 // Webサーバのポート
 #define WEB_SERVER_PORT 80
@@ -58,7 +58,7 @@ const char* PC_NAMES[] = {
 };
 
 // パルス幅（ミリ秒） - 電源ボタンを押す時間
-#define POWER_PULSE_MS 500
+#define POWER_PULSE_MS 1500
 
 // 長押し時間（ミリ秒） - 強制シャットダウン用
 #define POWER_LONG_PRESS_MS 5000
