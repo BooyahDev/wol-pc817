@@ -12,7 +12,10 @@
 AsyncWebServer server(WEB_SERVER_PORT);
 
 // 各PCの状態を保存（trueならON状態と仮定）
-bool pcStates[4] = {false, false, false, false};
+bool pcStates[9] = {false, false, false, false, false, false, false, false, false};
+
+// 各LEDの状態を保存（trueなら点灯）
+bool ledStates[9] = {false, false, false, false, false, false, false, false, false};
 
 // フォトカプラ初期化
 void initPhotocouplers() {
@@ -21,6 +24,21 @@ void initPhotocouplers() {
         digitalWrite(PHOTOCOUPLER_PINS[i], LOW);
     }
     Serial.println("Photocouplers initialized");
+}
+
+// LED読み取りピン初期化
+void initLEDReadPins() {
+    for (int i = 0; i < NUM_LED_PINS; i++) {
+        pinMode(LED_READ_PINS[i], INPUT);
+    }
+    Serial.println("LED read pins initialized");
+}
+
+// LED状態を読み取り
+void readLEDStates() {
+    for (int i = 0; i < NUM_LED_PINS; i++) {
+        ledStates[i] = digitalRead(LED_READ_PINS[i]) == HIGH;
+    }
 }
 
 // PC電源ボタンを押す（パルス信号を送る）
@@ -117,10 +135,17 @@ void setupWebServer() {
         String json = "{";
         json += "\"ip\":\"" + WiFi.localIP().toString() + "\",";
         json += "\"numPCs\":" + String(NUM_PHOTOCOUPLERS) + ",";
+        json += "\"numLEDs\":" + String(NUM_LED_PINS) + ",";
         json += "\"pcNames\":[";
         for (int i = 0; i < NUM_PHOTOCOUPLERS; i++) {
             json += "\"" + String(PC_NAMES[i]) + "\"";
             if (i < NUM_PHOTOCOUPLERS - 1) json += ",";
+        }
+        json += "],";
+        json += "\"ledNames\":[";
+        for (int i = 0; i < NUM_LED_PINS; i++) {
+            json += "\"" + String(LED_NAMES[i]) + "\"";
+            if (i < NUM_LED_PINS - 1) json += ",";
         }
         json += "]}";
         request->send(200, "application/json", json);
@@ -128,10 +153,19 @@ void setupWebServer() {
     
     // API: PC状態取得
     server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *request) {
-        String json = "{\"states\":[";
+        readLEDStates();  // LED状態を読み取り
+        
+        String json = "{";
+        json += "\"pcStates\":[";
         for (int i = 0; i < NUM_PHOTOCOUPLERS; i++) {
             json += pcStates[i] ? "true" : "false";
             if (i < NUM_PHOTOCOUPLERS - 1) json += ",";
+        }
+        json += "],";
+        json += "\"ledStates\":[";
+        for (int i = 0; i < NUM_LED_PINS; i++) {
+            json += ledStates[i] ? "true" : "false";
+            if (i < NUM_LED_PINS - 1) json += ",";
         }
         json += "]}";
         request->send(200, "application/json", json);
@@ -201,6 +235,9 @@ void setup() {
     // フォトカプラ初期化
     initPhotocouplers();
     
+    // LED読み取りピン初期化
+    initLEDReadPins();
+    
     // Wi-Fi接続
     connectWiFi();
     
@@ -214,6 +251,11 @@ void setup() {
 }
 
 void loop() {
-    // メインループは空（AsyncWebServerが非同期で動作）
-    delay(100);
+    // LED状態を定期的に読み取り
+    static unsigned long lastRead = 0;
+    if (millis() - lastRead > 500) {  // 500msごと
+        readLEDStates();
+        lastRead = millis();
+    }
+    delay(10);
 }
